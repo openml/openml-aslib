@@ -1,8 +1,7 @@
 import argparse
 import openml
 import os
-
-from openmlaslib.utils.scenario import generate_scenario
+import openmlaslib
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -14,9 +13,9 @@ if __name__ == '__main__':
     args_ = parser.parse_args()
 
     study = openml.study.get_study(args_.study_id)
-    generate_scenario(tasks=study.tasks,
-                      setups=study.setups,
-                      measure=args_.measure,
-                      output_dir=args_.output_dir,
-                      scenario_name='Study_' + str(study.id),
-                      require_complete=args_.require_complete)
+    openmlaslib.utils.generate_scenario(tasks=study.tasks,
+                                        setups=study.setups,
+                                        measure=args_.measure,
+                                        output_dir=args_.output_dir,
+                                        scenario_name='Study_' + str(study.id),
+                                        require_complete=args_.require_complete)
