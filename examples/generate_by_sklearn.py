@@ -98,7 +98,7 @@ if __name__ == '__main__':
         setup_ids.add(setup_id)
 
     # that's it. Now just create the benchmark suite ..
-    openmlaslib.utils.generate_scenario(tasks=benchmark_suite.task_ids,
+    openmlaslib.utils.generate_scenario(tasks=benchmark_suite.tasks,
                                         setups=setup_ids,
                                         measure=args_.measure,
                                         output_dir=args_.output_dir,
