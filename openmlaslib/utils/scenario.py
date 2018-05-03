@@ -6,8 +6,7 @@ import os
 
 def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require_complete=False):
     """ generates an ASlib scenario"""
-    evaluations = openml.utils.list_all(openml.evaluations.list_evaluations,
-                                        function=measure, setup=setups, task=tasks)
+    evaluations = openml.evaluations.list_evaluations(function=measure, setup=setups, task=tasks)
     total_dir = os.path.join(output_dir, scenario_name)
     try:
         os.makedirs(total_dir)
