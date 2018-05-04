@@ -24,7 +24,7 @@ Run example:
 This generates a copy of the OpenML-WEKA-2017 scenario.
 
 Alternatively, if the task ids and setup ids are already known (which requires some moderate OpenML skills) it is also possible to generate a scenario using these:
-`python examples/generate.py -measure predictive_accuracy -task_ids 1701 1702 1705 -setup_ids 2361 2362`
+`python examples/generate.py --measure predictive_accuracy --task_ids 1701 1702 1705 --setup_ids 2361 2362`
 
 
 ### Generate runs on the fly
