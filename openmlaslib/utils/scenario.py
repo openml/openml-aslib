@@ -2,8 +2,9 @@ import arff
 import collections
 import openml
 import os
-from typing import Dict, List, Set, Tuple
 import yaml
+
+from typing import Dict, List, Set
 
 
 def _obtained_data_to_run_arff(obtained_tasks: Set[int],

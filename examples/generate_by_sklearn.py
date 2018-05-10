@@ -34,7 +34,8 @@ def run_flow_on_benchmark_suite(estimator, task_ids):
     # properly setup a pipeline (important to impute missing values)
     model = sklearn.pipeline.Pipeline(steps=[
         ('imputation', sklearn.preprocessing.Imputer(strategy='median')),
-        ('estimator', estimator)])
+        ('estimator', estimator)
+    ])
 
     # iterate over all tasks
     for task_id in task_ids:
@@ -51,7 +52,7 @@ def run_flow_on_benchmark_suite(estimator, task_ids):
             assert e.message.startswith('Run already exists in server.')
             run_ids = e.message.split('{')[1].split('}')[0].split(',')
             run_id = int(run_ids[0])
-            print('- Already existed, using run id %d' % run_id)
+            print('- Already exists, using run id %d' % run_id)
 
         # obtain the stored run object from the server. This is how we will acquire the setup id
         # (which uniquely identifies this model / hyperparameter combination)
@@ -90,13 +91,13 @@ if __name__ == '__main__':
     # for more information about the OpenML nomocloture, read this blogpost:
     # https://medium.com/open-machine-learning/basic-components-of-openml-a5745634c664
     setupid_setupname = dict()
-
+    
     # iterate over the machine learning algorithms
     for name, estimator in estimators.items():
         # the function `run_flow_on_benchmark_suite' will run the setup on all tasks
         setup_id = run_flow_on_benchmark_suite(estimator, benchmark_suite.tasks)
         # record the obtained setup id
-        setupid_setupname[name] = setup_id
+        setupid_setupname[setup_id] = name
 
     # that's it. Now just create the benchmark suite ..
     openmlaslib.utils.generate_scenario(tasks=benchmark_suite.tasks,
