@@ -54,7 +54,7 @@ class TestMiscFunctions(unittest.TestCase):
         # note that these setups can't be ran on both task (due to imputation parameter)
         setups = [6672945, 6777909]
         tasks = [3, 59]
-        scenario_name = 'test_create_imcomplete_setup_scenario'
+        scenario_name = 'test_create_imcomplete_scenario'
         openmlaslib.utils.generate_scenario(setupid_setupname=TestMiscFunctions._setup_list_to_dict(setups),
                                             tasks=tasks,
                                             measure='predictive_accuracy',
@@ -68,7 +68,7 @@ class TestMiscFunctions(unittest.TestCase):
         with self.assertRaises(Warning):
             setups = [6672945, 6777909]
             tasks = [3, 59]
-            scenario_name = 'test_create_imcomplete_setup_scenario'
+            scenario_name = 'test_create_imcomplete_scenario_raise'
             openmlaslib.utils.generate_scenario(setupid_setupname=TestMiscFunctions._setup_list_to_dict(setups),
                                                 tasks=tasks,
                                                 measure='predictive_accuracy',
@@ -81,20 +81,22 @@ class TestMiscFunctions(unittest.TestCase):
         with self.assertRaises(Warning):
             setups = [2361, 2362, 0]
             tasks = [1701, 1702]
+            scenario_name = 'test_create_scenario_non_existing_setup'
             openmlaslib.utils.generate_scenario(setupid_setupname=TestMiscFunctions._setup_list_to_dict(setups),
                                                 tasks=tasks,
                                                 measure='predictive_accuracy',
                                                 output_dir=self.default_dir,
-                                                scenario_name='Misc',
+                                                scenario_name=scenario_name,
                                                 require_complete=True)
 
     def test_create_scenario_non_existing_task(self):
         with self.assertRaises(Warning):
             setups = [2361, 2362]
             tasks = [1701, 1702, 0]
+            scenario_name = 'test_create_scenario_non_existing_task'
             openmlaslib.utils.generate_scenario(setupid_setupname=TestMiscFunctions._setup_list_to_dict(setups),
                                                 tasks=tasks,
                                                 measure='predictive_accuracy',
                                                 output_dir=self.default_dir,
-                                                scenario_name='test_create_imcomplete_task_scenario_raise',
+                                                scenario_name=scenario_name,
                                                 require_complete=True)
