@@ -77,9 +77,10 @@ if __name__ == '__main__':
 
     # select the machine learning algorithms that we want to have in our ASLib Scenario.
     # In this case, Naive Bayes and a Decision Stump
-    estimators = [sklearn.naive_bayes.GaussianNB(),
-                  sklearn.tree.DecisionTreeClassifier(max_depth=1)
-    ]
+    estimators = {
+        'NaiveBayes': sklearn.naive_bayes.GaussianNB(),
+        'DecisionStump': sklearn.tree.DecisionTreeClassifier(max_depth=1)
+    }
 
     if openml.config.apikey is None:
         # set the OpenML API key. This can be done by creating a file called "config" in folder ~/.openml
@@ -88,18 +89,18 @@ if __name__ == '__main__':
     # a setup represents an algorithm with hyperparameter settings (sometimes called a configuration)
     # for more information about the OpenML nomocloture, read this blogpost:
     # https://medium.com/open-machine-learning/basic-components-of-openml-a5745634c664
-    setup_ids = set()
+    setupid_setupname = dict()
 
     # iterate over the machine learning algorithms
-    for estimator in estimators:
+    for name, estimator in estimators.items():
         # the function `run_flow_on_benchmark_suite' will run the setup on all tasks
         setup_id = run_flow_on_benchmark_suite(estimator, benchmark_suite.tasks)
         # record the obtained setup id
-        setup_ids.add(setup_id)
+        setupid_setupname[name] = setup_id
 
     # that's it. Now just create the benchmark suite ..
     openmlaslib.utils.generate_scenario(tasks=benchmark_suite.tasks,
-                                        setups=setup_ids,
+                                        setupid_setupname=setupid_setupname,
                                         measure=args_.measure,
                                         output_dir=args_.output_dir,
                                         scenario_name=args_.name,

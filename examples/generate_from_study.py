@@ -13,8 +13,9 @@ if __name__ == '__main__':
     args_ = parser.parse_args()
 
     study = openml.study.get_study(args_.study_id)
+    setupid_setupname = {sid: 'setup_%d' % sid for sid in study.setups}
     openmlaslib.utils.generate_scenario(tasks=study.tasks,
-                                        setups=study.setups,
+                                        setupid_setupname=setupid_setupname,
                                         measure=args_.measure,
                                         output_dir=args_.output_dir,
                                         scenario_name='Study_' + str(study.id),

@@ -14,8 +14,9 @@ if __name__ == '__main__':
                         help='if set to true, an error is thrown if not all tasks are ran on all setups')
     args_ = parser.parse_args()
 
+    setupid_setupname = {sid: 'setup_%d' % sid for sid in args_.setup_ids}
     openmlaslib.utils.generate_scenario(tasks=args_.task_ids,
-                                        setups=args_.setup_ids,
+                                        setupid_setupname=setupid_setupname,
                                         measure=args_.measure,
                                         output_dir=args_.output_dir,
                                         scenario_name=args_.name,

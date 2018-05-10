@@ -1,15 +1,62 @@
 import arff
-import yaml
+import collections
 import openml
 import os
+from typing import Dict, List, Set, Tuple
+import yaml
 
 
-def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require_complete=False):
+def _obtained_data_to_run_arff(obtained_tasks: Set[int],
+                               obtained_partialsetups: Set[str],
+                               task_setup_result: Dict[int, Dict[str, float]],
+                               measure: str, require_complete: bool):
+    """
+    Helper function that turns the obtained data into an dict for algorithm_runs.arff
+    """
+    run_attributes = [
+        ['instance_id', 'STRING'],
+        ['repetition', 'NUMERIC'],
+        ['algorithm', 'STRING'],
+        [measure, 'NUMERIC'],
+        ['runstatus', ['ok', 'timeout', 'memout', 'not_applicable', 'crash', 'other']]
+    ]
+
+    run_data = []
+    for task_id in obtained_tasks:
+        completed_results_task = 0
+        for setup_name in obtained_partialsetups:
+            if setup_name in task_setup_result[task_id]:
+                perf = task_setup_result[task_id][setup_name]
+                status = 'ok'
+                completed_results_task += 1
+            elif require_complete:
+                raise Warning('Not all setups were ran on all tasks. ' +
+                              'Several missing, e.g., task %d setup %s' % (task_id, setup_name))
+            else:
+                perf = 0  # TODO: also allow for measures that are meant to be minimized
+                status = 'other'
+            run_data.append([task_id, '1', setup_name, perf, status])
+
+        if completed_results_task == 0:
+            raise ValueError('There were zero completed results on task %d, consider removing it ' % task_id)
+
+    run_arff = {
+        'attributes': run_attributes,
+        'data': run_data,
+        'relation': 'ALGORITHM_RUNS'
+    }
+    return run_arff
+
+
+def generate_scenario(setupid_setupname: Dict[int, str], tasks: List[int], measure: str, output_dir: str,
+                      scenario_name: str, require_complete: bool=False):
     """
     generates an ASlib scenario, and stores it to disk
 
-    :param setups: list
-        contains all setup ids involved
+    :param setupid_setupname: dict
+        mapping from setup id to setup name. Multiple setup ids can map to the same setup name. In this case, these
+        setup ids will be considered the same algorithm (for example, when algorithms are ran with a different random
+        seed there will be various setup ids for a configuration that is practically the same)
     :param tasks: list
         contains all task ids involved
     :param measure: str
@@ -22,22 +69,23 @@ def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require
         if True, the script requires all estimators to be ran on all tasks (and throws an error if this condition is
         not met). Otherwise, an empty value (not finished) is recorded and run_status is set to other.
     """
-    evaluations = openml.evaluations.list_evaluations(function=measure, setup=setups, task=tasks)
+    # make directory first (in case of failure)
     total_dir = os.path.join(output_dir, scenario_name)
-    try:
-        os.makedirs(total_dir)
-    except FileExistsError:
-        pass
+    os.makedirs(total_dir, exist_ok=True)
+
+    setupname_setupid = collections.defaultdict(list)
+    for id, name in setupid_setupname.items():
+        setupname_setupid[name].append(id)
 
     setup_flowid = {}
     task_data_id = {}
-    setup_scenarioname = {}
     task_setup_result = {}
     task_qualities = {}
     obtained_tasks = set()
-    obtained_setups = set()
+    obtained_partialsetups = set()
 
     # obtain the data and book keeping
+    evaluations = openml.evaluations.list_evaluations(function=measure, setup=setupid_setupname.keys(), task=tasks)
     for run_id in evaluations.keys():
         task_id = evaluations[run_id].task_id
         flow_id = evaluations[run_id].flow_id
@@ -48,17 +96,19 @@ def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require
         task_data_id[task_id] = data_id
         setup_flowid[setup_id] = flow_id
         obtained_tasks.add(task_id)
-        obtained_setups.add(setup_id)
+        obtained_partialsetups.add(setupid_setupname[setup_id])
 
         if task_id not in task_setup_result:
             task_setup_result[task_id] = {}
-        task_setup_result[task_id][setup_id] = value
+        task_setup_result[task_id][setupid_setupname[setup_id]] = value
 
-    if require_complete:
-        if obtained_tasks != set(tasks):
-            raise Warning('Tasks not found in evaluation list: %s' % (set(tasks) - obtained_tasks))
-        if obtained_setups != set(setups):
-            raise Warning('Setups not found in evaluation list: %s' % (set(setups) - obtained_setups))
+    # this means there were zero results on this task. Throw error so user can throw it out.
+    if obtained_tasks != set(tasks):
+        raise Warning('Tasks not found in evaluation list: %s' % (set(tasks) - obtained_tasks))
+    # this means there were zero results on this partialsetup. Throw error so user can throw it out.
+    if obtained_partialsetups != set(setupid_setupname.values()):
+        missing = set(setupid_setupname.values()) - obtained_partialsetups
+        raise Warning('Setups not found in evaluation list: %s' % missing)
 
     # obtain the meta-features
     complete_quality_set = None
@@ -73,14 +123,23 @@ def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require
     complete_quality_set = list(complete_quality_set)
     print(complete_quality_set)
 
-    algos = {}
-    for setup_id in obtained_setups:
-        flow = openml.flows.get_flow(setup_flowid[setup_id])
-        name = '%s_%s' % (setup_id, flow.name)
-        setup_scenarioname[setup_id] = name
-        algos[name] = {'desterministic': True,
-                       'version': flow.version,
-                       'configuration': ''} # TODO
+    algos = dict()
+    for setup_name in obtained_partialsetups:
+        setup_list = openml.setups.list_setups(setup=setupname_setupid[setup_name])
+        if set(setup_list.keys()) != set(setupname_setupid[setup_name]):
+            missing = set(setupname_setupid[setup_name]) - set(setup_list.keys())
+            raise ValueError('Did not retrieve the following setups: %s' % missing)
+
+        # check if all setups are from the same flow
+        flow_id = list(setup_list.values())[0].flow_id
+        for sid, setup in setup_list.items():
+            if setup.flow_id != flow_id:
+                raise ValueError('Not all setups are generated by same flow for %s' % setup_name)
+        flow = openml.flows.get_flow(flow_id)
+
+        algos[setup_name] = {'desterministic': True,
+                             'version': flow.version,
+                             'configuration': ''}  # TODO! use the hyperparameter dict from setup list
 
     description = {'scenario_id': 'OpenML_' + scenario_name,
                    'performance_measures': [measure],
@@ -98,31 +157,11 @@ def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require
                    'feature_steps': {'ALL': {'provides': complete_quality_set}},
                    'default_steps': ['ALL']}
 
-    run_attributes = [['instance_id', 'STRING'],
-                      ['repetition', 'NUMERIC'],
-                      ['algorithm', 'STRING'],
-                      [measure, 'NUMERIC'],
-                      ['runstatus', ['ok', 'timeout', 'memout', 'not_applicable', 'crash', 'other']]
-                     ]
-
-    run_data = []
-    for task_id in obtained_tasks:
-        for setup_id in obtained_setups:
-            if setup_id in task_setup_result[task_id]:
-                perf = task_setup_result[task_id][setup_id]
-                status = 'ok'
-            elif require_complete:
-                raise Warning('Not all setups were ran on all tasks. ' +
-                              'Several missing, e.g., task %d setup %d' %(task_id, setup_id))
-            else:
-                perf = 0
-                status = 'other'
-            run_data.append([task_id, '1', setup_scenarioname[setup_id], perf, status])
-
-    run_arff = {'attributes': run_attributes,
-                'data': run_data,
-                'relation': 'ALGORITHM_RUNS'
-                }
+    run_arff = _obtained_data_to_run_arff(obtained_tasks,
+                                          obtained_partialsetups,
+                                          task_setup_result,
+                                          measure,
+                                          require_complete)
     with open(os.path.join(total_dir, 'algorithm_runs.arff'), 'w') as fp:
         arff.dump(run_arff, fp)
 
