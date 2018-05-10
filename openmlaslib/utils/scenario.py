@@ -5,7 +5,22 @@ import os
 
 
 def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require_complete=False):
-    """ generates an ASlib scenario"""
+    """
+    generates an ASlib scenario
+
+    :param setups: list
+        contains all setup ids involved
+    :param tasks: list
+        contains all task ids involved
+    :param measure: str
+        the evaluation measure to be obtained from OpenML (e.g., predictive_accuracy, area_under_roc_curve)
+    :param output_dir: where to save the files
+    :param scenario_name: str
+        the name to give to the scenario
+    :param require_complete: bool
+        if True, the script requires all estimators to be ran on all tasks (and throws an error if this condition is
+        not met). Otherwise, an empty value (not finished) is recorded and run_status is set to other.
+    """
     evaluations = openml.evaluations.list_evaluations(function=measure, setup=setups, task=tasks)
     total_dir = os.path.join(output_dir, scenario_name)
     try:
@@ -40,9 +55,9 @@ def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require
 
     if require_complete:
         if obtained_tasks != set(tasks):
-            raise Warning('Tasks not found in evaluation list: %s' %(set(tasks) - obtained_tasks))
+            raise Warning('Tasks not found in evaluation list: %s' % (set(tasks) - obtained_tasks))
         if obtained_setups != set(setups):
-            raise Warning('Setups not found in evaluation list: %s' %(set(setups) - obtained_setups))
+            raise Warning('Setups not found in evaluation list: %s' % (set(setups) - obtained_setups))
 
     # obtain the meta-features
     complete_quality_set = None
