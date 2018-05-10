@@ -6,7 +6,7 @@ import os
 
 def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require_complete=False):
     """
-    generates an ASlib scenario
+    generates an ASlib scenario, and stores it to disk
 
     :param setups: list
         contains all setup ids involved
@@ -14,7 +14,8 @@ def generate_scenario(setups, tasks, measure, output_dir, scenario_name, require
         contains all task ids involved
     :param measure: str
         the evaluation measure to be obtained from OpenML (e.g., predictive_accuracy, area_under_roc_curve)
-    :param output_dir: where to save the files
+    :param output_dir: str
+        location where to save the files
     :param scenario_name: str
         the name to give to the scenario
     :param require_complete: bool
