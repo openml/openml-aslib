@@ -86,7 +86,9 @@ def generate_scenario(setupid_setupname: Dict[int, str], tasks: List[int], measu
     obtained_partialsetups = set()
 
     # obtain the data and book keeping
-    evaluations = openml.evaluations.list_evaluations(function=measure, setup=setupid_setupname.keys(), task=tasks)
+    evaluations = dict()
+    for setup_id in setupid_setupname.keys():
+        evaluations.update(openml.evaluations.list_evaluations(function=measure, setup=[setup_id], task=tasks))
     for run_id in evaluations.keys():
         task_id = evaluations[run_id].task_id
         flow_id = evaluations[run_id].flow_id
